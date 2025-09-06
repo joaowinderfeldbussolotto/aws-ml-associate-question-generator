@@ -1,0 +1,44 @@
+service: aws-ml-questions-generator
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.11
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  environment:
+    GROQ_API_KEY: ${env:GROQ_API_KEY}
+    TELEGRAM_BOT_TOKEN: ${env:TELEGRAM_BOT_TOKEN}
+    TELEGRAM_CHAT_ID: ${env:TELEGRAM_CHAT_ID}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: 
+            - 'arn:aws:logs:*:*:*'
+
+functions:
+  generateQuestions:
+    handler: handler.lambda_handler
+    timeout: 30
+    events:
+      # 8h30 GMT-3 = 11:30 UTC
+      - schedule:
+          rate: cron(30 11 * * ? *)
+          name: morning-questions
+          description: 'Gerar questões às 8:30 (GMT-3)'
+      # 12h30 GMT-3 = 15:30 UTC  
+      - schedule:
+          rate: cron(30 15 * * ? *)
+          name: afternoon-questions
+          description: 'Gerar questões às 12:30 (GMT-3)'
+      # 18h00 GMT-3 = 21:00 UTC
+      - schedule:
+          rate: cron(0 21 * * ? *)
+          name: evening-questions
+          description: 'Gerar questões às 18:00 (GMT-3)'
