@@ -3,6 +3,7 @@ import os
 import urllib.request
 import urllib.parse
 from datetime import datetime
+from time import sleep
 
 def get_environment_variables():
     """Valida e retorna as variáveis de ambiente necessárias"""
@@ -24,7 +25,7 @@ def get_environment_variables():
 
 def create_questions_prompt():
     """Retorna o prompt para geração das questões"""
-    return """Quero que você atue como um gerador de questões no estilo da certificação AWS Certified Machine Learning Engineer – Associate (MLA-C01). Gere 5 questões de prática, cada uma seguindo a estrutura abaixo:
+    return """Quero que você atue como um gerador de questões no estilo da certificação AWS Certified Machine Learning Engineer – Associate (MLA-C01). Gere 6 questões de prática, cada uma seguindo a estrutura abaixo:
 
 Pergunta: (enunciado no estilo da prova, em português)
 Alternativas: 4 opções (A, B, C, D)
@@ -37,17 +38,18 @@ Regras importantes:
 - Use serviços e práticas em escopo, como SageMaker, Glue, Kinesis, EMR, Bedrock, CloudWatch, IAM, CodePipeline, etc.
 - Inclua pelo menos:
   * 1 questão sobre feature engineering ou data quality
-  * 1 questão sobre model deployment em SageMaker
+  * 1 questão sobre model deployment em SageMaker, MLOPS, endpoints, pipelines
   * 1 questão sobre monitoramento de modelos (drift, Model Monitor, Clarify)
-  * 1 questão sobre CI/CD ou pipelines de ML
+  * 2 questões sobre Engenharia de dados e analytics na AWS
+  * 1 questão sobre serviços gerais de AI/ML na AWS (ex: Bedrock, Comprehend, Rekognition, etc...)
 - Estilo deve ser similar ao exame: cenários práticos, alternativas plausíveis mas apenas 1 correta.
 - Seja específico: explore detalhes como escolha de instâncias, trade-offs de custo/latência, diferenças entre endpoints, configuração de segurança, etc."""
 
-def call_groq_api(api_key, prompt):
+def call_groq_api(api_key, prompt, model='openai/gpt-oss-120b'):
     """Chama a API do GROQ e retorna o conteúdo gerado"""
 
     payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
         
         "temperature": 0.7,
@@ -75,18 +77,25 @@ def call_groq_api(api_key, prompt):
 
 def get_rule_name(event):
     """Extrai o nome da regra do evento para personalizar a mensagem"""
-    if not event.get('resources'):
-        return "📚 Questões AWS ML"
+    default = "📚 Questões AWS ML"
     
-    resource = event['resources'][0]
-    if 'morning' in resource:
-        return "🌅 Questões Matinais (8:30)"
-    elif 'afternoon' in resource:
-        return "☀️ Questões do Almoço (12:30)"
-    elif 'evening' in resource:
-        return "🌆 Questões Vespertinas (18:00)"
-    else:
-        return "📚 Questões AWS ML"
+    try:
+        if not event.get('resources'):
+            return default
+
+        resource = event['resources'][0]
+        if 'morning' in resource:
+            return "🌅 Questões Matinais (8:30)"
+        elif 'afternoon' in resource:
+            return "☀️ Questões do Almoço (12:30)"
+        elif 'evening' in resource:
+            return "🌆 Questões Vespertinas (18:00)"
+        elif 'night' in resource:
+            return "🌙 Questões Noturnas (23:00)"
+        else:
+            return default
+    except Exception:
+        return default
 
 def create_telegram_message(questions_content, rule_name, timestamp):
     """Cria a mensagem formatada para o Telegram"""
@@ -100,52 +109,70 @@ def create_telegram_message(questions_content, rule_name, timestamp):
 ---
 💡 Bons estudos! 🚀"""
 
+
 def split_long_message(message, max_length=4000):
-    """Divide mensagens longas em partes menores para o Telegram"""
+    """
+    Divide mensagens longas em partes menores para envio no Telegram.
+    - max_length: limite de caracteres por mensagem (Telegram suporta até 4096)
+    """
     if len(message) <= max_length:
         return [message]
-    
+
     messages = []
-    parts = message.split('**Questão')
-    header = parts[0] if parts else ""
-    
-    current_message = header
-    for i, part in enumerate(parts[1:], 1):
-        question_text = f"**Questão{part}"
-        
-        if len(current_message + question_text) <= max_length:
-            current_message += question_text
-        else:
-            if current_message.strip():
+    # Tenta dividir por 'Questão' se existir
+    if "Questão" in message:
+        parts = message.split('Questão')
+        header = parts[0] if parts else ""
+        current_message = header
+
+        for i, part in enumerate(parts[1:], 1):
+            part_text = f"Questão{part}"
+            if len(current_message) + len(part_text) <= max_length:
+                current_message += part_text
+            else:
                 messages.append(current_message)
-            current_message = question_text
-    
-    if current_message.strip():
-        messages.append(current_message)
-    
+                current_message = part_text
+        if current_message:
+            messages.append(current_message)
+    else:
+        # Se não houver 'Questão', divide por blocos de max_length
+        for i in range(0, len(message), max_length):
+            messages.append(message[i:i + max_length])
     return messages
 
+
 def send_telegram_message(message, bot_token, chat_id):
-    """Envia mensagem para o Telegram, dividindo se necessário"""
+    """
+    Envia mensagem para o Telegram, dividindo automaticamente se for muito longa
+    """
+    import requests
+
     messages = split_long_message(message)
-    
+
     for msg in messages:
+        # Limpeza de caracteres que quebram Markdown
+        cleaned_msg = (
+            msg.replace('–', '-')
+               .replace('‑', '-')
+               .replace('‘', "'")
+               .replace('’', "'")
+        )
         payload = {
             'chat_id': chat_id,
-            'text': msg,
-            'parse_mode': 'Markdown'
+            'text': cleaned_msg
         }
-        
-        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        data = urllib.parse.urlencode(payload).encode('utf-8')
-        req = urllib.request.Request(url, data=data)
-        
-        with urllib.request.urlopen(req, timeout=10) as response:
-            if response.status != 200:
+        try:
+            response = requests.post(
+                f'https://api.telegram.org/bot{bot_token}/sendMessage',
+                json=payload,
+                timeout=10
+            )
+            response.raise_for_status()
+        except Exception as e:
+            print(f"Erro ao enviar mensagem: {e}")
+        sleep(1)  # evita limite de requisições do Telegram
 
-                raise Exception(f"Erro ao enviar mensagem para Telegram: {response.status}")
-    
-    return True
+
 
 def create_success_response(timestamp, rule_name, telegram_sent=True, questions=None):
     """Cria resposta de sucesso padronizada"""
@@ -193,7 +220,7 @@ def generate_questions(event, context):
         # Gerar questões
         print(f"[{timestamp}] Iniciando geração de questões...")
         prompt = create_questions_prompt()
-        questions_content = call_groq_api(groq_api_key, prompt)
+        questions_content = call_groq_api(groq_api_key, prompt, 'openai/gpt-oss-120b')
         print(f"[{timestamp}] Questões geradas com sucesso")
         
         # Preparar mensagem para Telegram

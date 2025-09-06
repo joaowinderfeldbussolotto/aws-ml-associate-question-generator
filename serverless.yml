@@ -1,5 +1,5 @@
 service: aws-ml-questions-generator
-
+useDotenv: true
 frameworkVersion: '3'
 
 provider:
@@ -42,3 +42,9 @@ functions:
           rate: cron(0 21 * * ? *)
           name: evening-questions
           description: 'Gerar questões às 18:00 (GMT-3)'
+        # 23h45 GMT-3 = 02:00 UTC (próximo dia)
+      - schedule:
+          rate: cron(0 2 * * ? *)
+          name: night-questions
+          description: 'Gerar questões às 23:45 (GMT-3)'
+          
