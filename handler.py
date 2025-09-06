@@ -143,10 +143,8 @@ def split_long_message(message, max_length=4000):
 
 def send_telegram_message(message, bot_token, chat_id):
     """
-    Envia mensagem para o Telegram, dividindo automaticamente se for muito longa
+    Envia mensagem para o Telegram, dividindo se necessário.
     """
-    import requests
-
     messages = split_long_message(message)
 
     for msg in messages:
@@ -157,19 +155,22 @@ def send_telegram_message(message, bot_token, chat_id):
                .replace('‘', "'")
                .replace('’', "'")
         )
-        payload = {
-            'chat_id': chat_id,
-            'text': cleaned_msg
-        }
+
+        data = json.dumps({
+            "chat_id": chat_id,
+            "text": cleaned_msg
+        }).encode("utf-8")
+
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+
         try:
-            response = requests.post(
-                f'https://api.telegram.org/bot{bot_token}/sendMessage',
-                json=payload,
-                timeout=10
-            )
-            response.raise_for_status()
+            with urllib.request.urlopen(req, timeout=10) as response:
+                response_data = response.read().decode("utf-8")
+                # opcional: print(response_data)
         except Exception as e:
             print(f"Erro ao enviar mensagem: {e}")
+
         sleep(1)  # evita limite de requisições do Telegram
 
 
@@ -256,4 +257,3 @@ def generate_questions(event, context):
 
 def lambda_handler(event, context):
     return generate_questions(event, context)
-

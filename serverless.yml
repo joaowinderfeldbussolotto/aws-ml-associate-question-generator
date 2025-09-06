@@ -42,9 +42,9 @@ functions:
           rate: cron(0 21 * * ? *)
           name: evening-questions
           description: 'Gerar questões às 18:00 (GMT-3)'
-        # 23h45 GMT-3 = 02:45 UTC (próximo dia)
+        # 00h00 GMT-3 = 00h00 UTC (próximo dia)
       - schedule:
-          rate: cron(45 2 * * ? *)
+          rate: cron(0 3 * * ? *)
           name: night-questions
-          description: 'Gerar questões às 23:45 (GMT-3)'
+          description: 'Gerar questões às 00h00 (GMT-3)'
 
