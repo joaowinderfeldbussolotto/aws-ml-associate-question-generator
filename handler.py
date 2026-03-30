@@ -25,7 +25,7 @@ def get_environment_variables():
 
 def create_questions_prompt():
     """Retorna o prompt para geração das questões"""
-    return """Quero que você atue como um gerador de questões no estilo da certificação AWS Certified Machine Learning Engineer – Associate (MLA-C01). Gere 6 questões de prática, cada uma seguindo a estrutura abaixo:
+    return """Quero que você atue como um gerador de questões no estilo da certificação Databricks Certified Machine Learning Associate. Gere 4 questões de prática (1 por seção), cada uma seguindo a estrutura abaixo:
 
 Pergunta: (enunciado no estilo da prova, em português)
 Alternativas: 4 opções (A, B, C, D)
@@ -33,17 +33,15 @@ Resposta correta: indique a alternativa correta
 Explicação: descreva por que essa alternativa é correta e por que as outras estão erradas.
 
 Regras importantes:
-- As perguntas devem ser de alto nível e complicadas, no mesmo estilo da prova, com cenários práticos e alternativas muito plausíveis.
-- Misture os 4 domínios do exame: Data Preparation (28%), ML Model Development (26%), Deployment & Orchestration (22%), Monitoring, Maintenance & Security (24%)
-- Use serviços e práticas em escopo, como SageMaker, Glue, Kinesis, EMR, Bedrock, CloudWatch, IAM, CodePipeline, etc.
-- Inclua pelo menos:
-  * 1 questão sobre feature engineering ou data quality
-  * 1 questão sobre model deployment em SageMaker, MLOPS, endpoints, pipelines
-  * 1 questão sobre monitoramento de modelos (drift, Model Monitor, Clarify)
-  * 2 questões sobre Engenharia de dados e analytics na AWS
-  * 1 questão sobre serviços gerais de AI/ML na AWS (ex: Bedrock, Comprehend, Rekognition, etc...)
-- Estilo deve ser similar ao exame: cenários práticos, alternativas plausíveis mas apenas 1 correta.
-- Seja específico: explore detalhes como escolha de instâncias, trade-offs de custo/latência, diferenças entre endpoints, configuração de segurança, etc."""
+- Gere exatamente 1 questão para cada seção do exame:
+  * Section 1: Databricks Machine Learning
+  * Section 2: Data Processing
+  * Section 3: Model Development
+  * Section 4: Model Deployment
+- Em cada questão, inclua no início do enunciado o rótulo da seção (exemplo: "Seção 1 - Databricks Machine Learning").
+- Use conceitos e ferramentas do ecossistema Databricks em escopo (Unity Catalog, Feature Store, MLflow, AutoML, Spark, Hyperopt, Model Serving, Delta Live Tables, etc.).
+- Estilo deve ser similar ao exame: cenários práticos, alternativas plausíveis e apenas 1 correta.
+- Mantenha o formato exatamente como: Pergunta, Alternativas, Resposta correta, Explicação."""
 
 def call_groq_api(api_key, prompt, model='openai/gpt-oss-120b'):
     """Chama a API do GROQ e retorna o conteúdo gerado"""
@@ -77,21 +75,19 @@ def call_groq_api(api_key, prompt, model='openai/gpt-oss-120b'):
 
 def get_rule_name(event):
     """Extrai o nome da regra do evento para personalizar a mensagem"""
-    default = "📚 Questões AWS ML"
+    default = "📚 Questões Databricks ML"
     
     try:
         if not event.get('resources'):
             return default
 
         resource = event['resources'][0]
-        if 'morning' in resource:
-            return "🌅 Questões Matinais (8:30)"
-        elif 'afternoon' in resource:
-            return "☀️ Questões do Almoço (12:30)"
+        if 'noon' in resource:
+            return "☀️ Questões do Meio-dia (12:00)"
         elif 'evening' in resource:
             return "🌆 Questões Vespertinas (18:00)"
         elif 'night' in resource:
-            return "🌙 Questões Noturnas (23:00)"
+            return "🌙 Questões Noturnas (22:00)"
         else:
             return default
     except Exception:
@@ -101,7 +97,7 @@ def create_telegram_message(questions_content, rule_name, timestamp):
     """Cria a mensagem formatada para o Telegram"""
     return f"""🎯 **{rule_name}**
 
-🏆 **AWS Certified Machine Learning Engineer Associate (MLA-C01)**
+🏆 **Databricks Certified Machine Learning Associate**
 📅 {timestamp}
 
 {questions_content}

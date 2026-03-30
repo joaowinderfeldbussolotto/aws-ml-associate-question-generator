@@ -1,12 +1,12 @@
-# AWS ML Associate Question Generator
+# Databricks ML Associate Question Generator
 
-> Gera automaticamente questões no estilo da certificação **AWS Certified Machine Learning Engineer – Associate (MLA-C01)** e envia para um grupo do Telegram, utilizando AWS Lambda, Serverless Framework e a API do Groq.
+> Gera automaticamente questões no estilo da certificação **Databricks Certified Machine Learning Associate** e envia para um grupo do Telegram, utilizando AWS Lambda, Serverless Framework e a API do Groq.
 
 ---
 
 ## Visão Geral
 
-Este projeto automatiza a geração e envio de questões de prática para a certificação AWS ML Associate. Ele utiliza um modelo LLM hospedado na Groq para criar questões realistas, e envia as questões para um grupo do Telegram em horários programados via AWS Lambda.
+Este projeto automatiza a geração e envio de questões de prática para a certificação Databricks ML Associate. Ele utiliza um modelo LLM hospedado na Groq para criar questões realistas, e envia as questões para um grupo do Telegram em horários programados via AWS Lambda.
 
 ---
 
@@ -64,10 +64,9 @@ Este projeto automatiza a geração e envio de questões de prática para a cert
 
 Os horários de envio das questões são configurados no `serverless.yml`:
 
-- 08:30 (manhã)
-- 12:30 (almoço)
+- 12:00 (meio-dia)
 - 18:00 (tarde)
-- 00:00 (noite)
+- 22:00 (noite)
 
 ---
 
@@ -80,14 +79,14 @@ Os horários de envio das questões são configurados no `serverless.yml`:
 ## Exemplo de Questão Gerada
 
 ```
-Pergunta: Uma equipe de ciência de dados está desenvolvendo um pipeline de machine learning para detecção de fraude em tempo real usando múltiplos serviços AWS. O pipeline precisa ingerir dados de alta frequência de múltiplas fontes, realizar feature engineering complexo, treinar modelos com grandes volumes de dados históricos, e garantir que o modelo em produção seja monitorado quanto a drift de conceito e compliance regulatório. Considerando requisitos de escalabilidade, custo, governança e explicabilidade, qual das arquiteturas abaixo é a mais adequada?
+Pergunta: Seção 1 - Databricks Machine Learning. Uma equipe deseja centralizar o gerenciamento de features para múltiplos workspaces e registrar modelos com governança unificada. Qual abordagem é a mais adequada no Databricks?
 Alternativas:
-A) Utilizar AWS Glue para ingestão e transformação, SageMaker Pipelines para orquestração, SageMaker Model Registry para versionamento, SageMaker Model Monitor para monitoramento, e AWS CloudTrail para auditoria.
-B) Utilizar Amazon Kinesis Data Streams para ingestão, AWS Lambda para feature engineering, SageMaker Batch Transform para inferência, e Amazon CloudWatch para monitoramento.
-C) Utilizar Amazon EMR para ingestão e processamento, SageMaker para treinamento, endpoint real-time para inferência, e AWS Config para monitoramento.
-D) Utilizar apenas Amazon SageMaker Studio para todo o fluxo, com scripts customizados para ingestão, processamento, treinamento e monitoramento.
+A) Criar tabelas de feature store no Unity Catalog em nível de conta e registrar modelos no Unity Catalog Model Registry.
+B) Manter tabelas de features e modelos apenas em cada workspace, sem catálogo central.
+C) Armazenar features em arquivos locais do cluster e versionar modelos manualmente.
+D) Treinar modelos sem feature store e sem registro de modelos.
 Resposta correta: A
-Explicação: A alternativa A utiliza serviços gerenciados e integrados para cada etapa crítica: Glue para ETL escalável, Pipelines para orquestração, Model Registry para governança, Model Monitor para monitoramento de drift e CloudTrail para compliance. As demais opções não cobrem todos os requisitos de escalabilidade, governança e explicabilidade de forma integrada.
+Explicação: A alternativa A permite governança centralizada, compartilhamento entre workspaces e melhor rastreabilidade via Unity Catalog. As demais não oferecem governança central robusta nem colaboração adequada em escala.
 ```
 
 ---

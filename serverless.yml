@@ -27,24 +27,18 @@ functions:
     handler: handler.lambda_handler
     timeout: 30
     events:
-      # 8h30 GMT-3 = 11:30 UTC
+      # 12h00 GMT-3 = 15:00 UTC
       - schedule:
-          rate: cron(30 11 * * ? *)
-          name: morning-questions
-          description: 'Gerar questões às 8:30 (GMT-3)'
-      # 12h30 GMT-3 = 15:30 UTC  
-      - schedule:
-          rate: cron(30 15 * * ? *)
-          name: afternoon-questions
-          description: 'Gerar questões às 12:30 (GMT-3)'
+          rate: cron(0 15 * * ? *)
+          name: noon-questions
+          description: 'Gerar questões às 12:00 (GMT-3)'
       # 18h00 GMT-3 = 21:00 UTC
       - schedule:
           rate: cron(0 21 * * ? *)
           name: evening-questions
           description: 'Gerar questões às 18:00 (GMT-3)'
-        # 00h00 GMT-3 = 00h00 UTC (próximo dia)
+      # 22h00 GMT-3 = 01:00 UTC (dia seguinte)
       - schedule:
-          rate: cron(0 3 * * ? *)
+          rate: cron(0 1 * * ? *)
           name: night-questions
-          description: 'Gerar questões às 00h00 (GMT-3)'
-
+          description: 'Gerar questões às 22:00 (GMT-3)'
